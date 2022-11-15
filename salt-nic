@@ -1,0 +1,20 @@
+let
+    ОсновнойМассив = let
+    Источник = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WujDtwo4LWy7surDvYuPFpos9Ch6lxdmVCr6JOYmVxZmJeQrBqUWZqcUKwYk5JQrFJUX5eek6CsYGChf2XNitoxCen5OWlFpUVKmjYAQW26wPklCK1SHNZBoYqZCRWJRCC3NLc0qKEhWKaeNqHEZCLFWKjQUA", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Номенклатура = _t]),
+    #"Измененный тип" = Table.TransformColumnTypes(Источник,{{"Номенклатура", type text}}),
+    #"Добавлен пользовательский объект" = Table.AddColumn(#"Измененный тип", "ЯвляетсяСтронг", each if Text.Contains([Номенклатура], "hard")
+or Text.Contains([Номенклатура], "strong")
+or Text.Contains([Номенклатура], "ultra")
+then "StrongSalt" else "NotStrong"),
+    #"Добавлен пользовательский объект1" = Table.AddColumn(#"Добавлен пользовательский объект", "КорректорКрепости", each if ([ЯвляетсяСтронг] = "StrongSalt")
+and Text.Contains([Номенклатура], "20 мг/мл")
+then Text.Replace([Номенклатура], "20 мг/мл", "2 ultra")
+else [Номенклатура]),
+    #"Разделить столбец по разделителю" = Table.SplitColumn(#"Добавлен пользовательский объект1", "КорректорКрепости", Splitter.SplitTextByDelimiter(",", QuoteStyle.Csv), {"КорректорКрепости.1", "КорректорКрепости.2", "КорректорКрепости.3", "КорректорКрепости.4"}),
+    #"Измененный тип1" = Table.TransformColumnTypes(#"Разделить столбец по разделителю",{{"КорректорКрепости.1", type text}, {"КорректорКрепости.2", type text}, {"КорректорКрепости.3", type text}, {"КорректорКрепости.4", type text}}),
+    f = (x)=>List.Accumulate({"hard","strong","ultra"},0,(s,c)=>Text.Replace(s,c,""))
+in
+     #"Измененный тип1",
+    #"Вызвана настраиваемая функция" = Table.AddColumn(ОсновнойМассив, "Запрос1", each Запрос1([КорректорКрепости.1]))
+in
+    #"Вызвана настраиваемая функция"
